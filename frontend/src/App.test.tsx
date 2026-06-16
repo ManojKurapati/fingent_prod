@@ -16,6 +16,18 @@ describe('App shell', () => {
     expect(screen.getByRole('region', { name: /approvals/i })).toBeInTheDocument()
   })
 
+  it('navigates to the FP&A and Trading dashboards and back home', async () => {
+    render(<App />)
+    await userEvent.click(screen.getByRole('button', { name: 'FP&A' }))
+    expect(screen.getByRole('heading', { name: /fp&a planning/i })).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Trading' }))
+    expect(screen.getByRole('heading', { name: /sales & trading/i })).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Home' }))
+    expect(screen.getByRole('region', { name: /approvals/i })).toBeInTheDocument()
+  })
+
   it('lists pending approvals fetched from the API', async () => {
     render(<App />)
     expect(await screen.findByRole('button', { name: /template_publish/i })).toBeInTheDocument()

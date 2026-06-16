@@ -36,7 +36,7 @@ addopts = "-q"
 [tool.coverage.run]
 source = ["app"]
 branch = true
-omit = ["app/main.py"]
+omit = ["app/main.py", "app/e2e_server.py"]
 
 [tool.coverage.report]
 show_missing = true
