@@ -60,10 +60,16 @@ export function SalesTradingPage({ eventSource }: SalesTradingPageProps) {
     unsubscribe.current?.()
     unsubscribe.current = subscribeJob(
       job_id,
-      { onEvent: (event) => setEvents((prev) => [...prev, event]) },
+      {
+        onEvent: (event) => {
+          setEvents((prev) => [...prev, event])
+          // When the run finishes, any routing request is now in the queue.
+          if (event.type === 'status') void refresh()
+        },
+      },
       eventSource,
     )
-  }, [side, eventSource])
+  }, [side, eventSource, refresh])
 
   const handleApprove = useCallback(
     async (approver: string) => {

@@ -59,10 +59,16 @@ export function FpaPage({ eventSource }: FpaPageProps) {
     unsubscribe.current?.()
     unsubscribe.current = subscribeJob(
       job_id,
-      { onEvent: (event) => setEvents((prev) => [...prev, event]) },
+      {
+        onEvent: (event) => {
+          setEvents((prev) => [...prev, event])
+          // When the run finishes, any commentary request is now in the queue.
+          if (event.type === 'status') void refresh()
+        },
+      },
       eventSource,
     )
-  }, [eventSource])
+  }, [eventSource, refresh])
 
   const runScenario = useCallback(async () => {
     const { job_id } = await startScenario({
