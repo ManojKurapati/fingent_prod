@@ -13,7 +13,7 @@
 ![Tests](https://img.shields.io/badge/tests-635%20backend%20%2B%20146%20frontend-34d399)
 ![Coverage](https://img.shields.io/badge/coverage-%E2%89%A585%25-34d399)
 
-![Command Center](<Screenshot 2026-06-17 at 10.18.29 AM.png>)
+![Command Center](assets/command-center.png)
 
 </div>
 
@@ -47,7 +47,7 @@ Crucially, **nothing posts to a ledger, moves cash, executes a trade, binds risk
 
 <div align="center">
 
-![Agent Catalog](<Screenshot 2026-06-17 at 2.21.13 PM.png>)
+![Agent Catalog](assets/agent-catalog.png)
 
 *The Agent Catalog — click any group to see what it can do and how to use it, then deploy in one click.*
 
@@ -162,7 +162,7 @@ Fingent connects to the systems your org already runs. You supply credentials **
 
 <div align="center">
 
-![Connect and deploy](<Screenshot 2026-06-17 at 2.22.52 PM.png>)
+![Connect and deploy](assets/connect-deploy.png)
 
 </div>
 
