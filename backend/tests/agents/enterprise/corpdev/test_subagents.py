@@ -89,6 +89,47 @@ async def test_valuation_not_accretive_without_synergies() -> None:
     assert out["accretive"] is False
 
 
+async def test_valuation_models_real_eps_accretion_when_acquirer_connected() -> None:
+    # Acquirer EPS = 100/100 = 1.00. EV = 10*8 = 80 -> 80/20 = 4 new shares.
+    # Pro-forma NI = 100 + 5 (target) + 1 (synergies) = 106 over 104 shares = 1.0192.
+    connectors = _connectors(
+        **{
+            "target:ebitda:beta": "10",
+            "target:net_income:beta": "5",
+            "acquirer:net_income": "100",
+            "acquirer:shares": "100",
+            "acquirer:share_price": "20",
+        }
+    )
+    out = await ValuationModellingSubagent(8.0, 0.1, _gateway(), connectors).execute(
+        _ctx({"pipeline-sourcing": {"top_target": "beta"}})
+    )
+    assert out["modelled"] is True
+    assert out["acquirer_eps"] == pytest.approx(1.0)
+    assert out["proforma_eps"] == pytest.approx(106.0 / 104.0, rel=1e-3)
+    assert out["accretion_pct"] > 0
+    assert out["accretive"] is True
+
+
+async def test_valuation_flags_dilution_on_thin_target() -> None:
+    # Big EV / lots of new shares, tiny target earnings -> EPS falls.
+    connectors = _connectors(
+        **{
+            "target:ebitda:beta": "10",
+            "target:net_income:beta": "1",
+            "acquirer:net_income": "100",
+            "acquirer:shares": "100",
+            "acquirer:share_price": "1",  # EV 80 / 1 = 80 new shares
+        }
+    )
+    out = await ValuationModellingSubagent(8.0, 0.0, _gateway(), connectors).execute(
+        _ctx({"pipeline-sourcing": {"top_target": "beta"}})
+    )
+    assert out["modelled"] is True
+    assert out["accretion_pct"] < 0
+    assert out["accretive"] is False
+
+
 # --- due-diligence ---------------------------------------------------------
 
 
@@ -108,6 +149,31 @@ async def test_due_diligence_flags_block_clearance() -> None:
     )
     assert out["red_flags"] == 2
     assert out["cleared"] is False
+    # legacy aggregate key folds into the financial workstream
+    assert out["by_workstream"]["financial"] == 2
+    assert out["open_workstreams"] == ["financial"]
+
+
+async def test_due_diligence_aggregates_across_workstreams() -> None:
+    connectors = _connectors(
+        **{
+            "target:redflags:legal:beta": "1",
+            "target:redflags:tax:beta": "3",
+        }
+    )
+    out = await DueDiligenceSubagent(_gateway(), connectors).execute(
+        _ctx({"pipeline-sourcing": {"top_target": "beta"}})
+    )
+    assert out["red_flags"] == 4
+    assert out["cleared"] is False
+    assert out["by_workstream"] == {
+        "financial": 0,
+        "legal": 1,
+        "commercial": 0,
+        "tax": 3,
+        "operational": 0,
+    }
+    assert out["open_workstreams"] == ["legal", "tax"]
 
 
 # --- deal-materials (consequential publish) --------------------------------
@@ -145,6 +211,42 @@ async def test_deal_materials_holds_when_not_clear_or_dilutive() -> None:
     assert out["recommendation"] == "hold"
     # publication is still default-deny gated regardless of recommendation
     assert len(guardrails.pending()) == 1
+
+
+async def test_deal_materials_assembles_cim_with_sections() -> None:
+    out = await DealMaterialsSubagent(_guardrails(), _gateway()).execute(
+        _ctx(
+            {
+                "valuation-modelling": {
+                    "target": "beta",
+                    "ev": 80.0,
+                    "ebitda": 10.0,
+                    "synergies": 1.0,
+                    "proforma_eps": 1.02,
+                    "accretion_pct": 0.02,
+                    "accretive": True,
+                },
+                "due-diligence": {
+                    "cleared": True,
+                    "red_flags": 0,
+                    "open_workstreams": [],
+                },
+            }
+        )
+    )
+    cim = out["cim"]
+    assert cim["target"] == "beta"
+    assert cim["sections"] == [
+        "executive-summary",
+        "target-overview",
+        "financials",
+        "valuation",
+        "synergies",
+        "diligence-findings",
+        "recommendation",
+    ]
+    assert cim["valuation"]["proforma_eps"] == 1.02
+    assert cim["recommendation"] == "proceed"
 
 
 async def test_publish_deal_tool_is_consequential() -> None:

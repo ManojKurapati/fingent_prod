@@ -61,8 +61,18 @@ class PipelineSourcingSubagent(Subagent[None, dict[str, Any]]):
         return {"scores": scores, "ranked": ranked, "top_target": ranked[0]}
 
 
+# Diligence workstreams run as one combined financial/legal/commercial review.
+_DD_WORKSTREAMS = ("financial", "legal", "commercial", "tax", "operational")
+
+
 class ValuationModellingSubagent(Subagent[None, dict[str, Any]]):
-    """Parallel with diligence: valuation, EV, synergies, accretion."""
+    """Parallel with diligence: EV, synergies, and pro-forma EPS accretion/dilution.
+
+    When acquirer financials (net income, share count, price) are connected, a
+    real all-stock pro-forma EPS bridge is computed and ``accretive`` reflects
+    whether combined EPS rises. With no acquirer baseline connected it falls back
+    to a synergy-positive proxy so a thin deal screen still works.
+    """
 
     name = "valuation-modelling"
 
@@ -83,17 +93,48 @@ class ValuationModellingSubagent(Subagent[None, dict[str, Any]]):
         target: str = ctx.results["pipeline-sourcing"]["top_target"]
         ebitda = await _number(self._connectors, f"target:ebitda:{target}")
         synergies = round(ebitda * self._synergy_rate, 2)
+        ev = round(ebitda * self._multiple, 2)
+
+        acquirer_ni = await _number(self._connectors, "acquirer:net_income")
+        acquirer_shares = await _number(self._connectors, "acquirer:shares")
+        share_price = await _number(self._connectors, "acquirer:share_price")
+        target_ni = await _number(self._connectors, f"target:net_income:{target}")
+
+        modelled = acquirer_shares > 0 and acquirer_ni != 0
+        if modelled:
+            acquirer_eps = acquirer_ni / acquirer_shares
+            # All-stock consideration: new shares issued at the acquirer's price.
+            new_shares = ev / share_price if share_price > 0 else 0.0
+            proforma_ni = acquirer_ni + target_ni + synergies
+            proforma_shares = acquirer_shares + new_shares
+            proforma_eps = proforma_ni / proforma_shares if proforma_shares else 0.0
+            accretion_pct = (proforma_eps / acquirer_eps - 1.0) if acquirer_eps else 0.0
+            accretive = proforma_eps > acquirer_eps
+        else:
+            acquirer_eps = proforma_eps = accretion_pct = 0.0
+            accretive = synergies > 0
+
         return {
             "target": target,
             "ebitda": ebitda,
-            "ev": round(ebitda * self._multiple, 2),
+            "ev": ev,
             "synergies": synergies,
-            "accretive": synergies > 0,
+            "acquirer_eps": round(acquirer_eps, 4),
+            "proforma_eps": round(proforma_eps, 4),
+            "accretion_pct": round(accretion_pct, 4),
+            "modelled": modelled,
+            "accretive": accretive,
         }
 
 
 class DueDiligenceSubagent(Subagent[None, dict[str, Any]]):
-    """Parallel with valuation: financial/commercial diligence on the target."""
+    """Parallel with valuation: multi-workstream diligence on the target.
+
+    Runs the standard financial/legal/commercial/tax/operational workstreams,
+    each tallying red flags from the connector; a legacy aggregate red-flag key
+    is folded into the financial workstream for back-compat. The target only
+    clears when every workstream is clean.
+    """
 
     name = "due-diligence"
 
@@ -104,14 +145,40 @@ class DueDiligenceSubagent(Subagent[None, dict[str, Any]]):
     async def execute(self, ctx: StepContext) -> dict[str, Any]:
         await self._gateway.complete(prompt="run due diligence", tier=ModelTier.OPUS)
         target: str = ctx.results["pipeline-sourcing"]["top_target"]
-        red_flags = int(await _number(self._connectors, f"target:redflags:{target}"))
-        return {"target": target, "red_flags": red_flags, "cleared": red_flags == 0}
+        by_workstream = {
+            ws: int(await _number(self._connectors, f"target:redflags:{ws}:{target}"))
+            for ws in _DD_WORKSTREAMS
+        }
+        # Legacy aggregate red-flag key counts as a financial-diligence finding.
+        by_workstream["financial"] += int(
+            await _number(self._connectors, f"target:redflags:{target}")
+        )
+        red_flags = sum(by_workstream.values())
+        open_workstreams = sorted(ws for ws, n in by_workstream.items() if n)
+        return {
+            "target": target,
+            "by_workstream": by_workstream,
+            "open_workstreams": open_workstreams,
+            "red_flags": red_flags,
+            "cleared": red_flags == 0,
+        }
 
 
 class DealMaterialsSubagent(Subagent[None, dict[str, Any]]):
-    """Fan-in: assemble the board memo; the recommendation publish is gated."""
+    """Fan-in: assemble the board memo + a CIM; the recommendation publish is gated."""
 
     name = "deal-materials"
+
+    # Sections assembled into the Confidential Information Memorandum.
+    _CIM_SECTIONS = (
+        "executive-summary",
+        "target-overview",
+        "financials",
+        "valuation",
+        "synergies",
+        "diligence-findings",
+        "recommendation",
+    )
 
     def __init__(
         self,
@@ -137,17 +204,37 @@ class DealMaterialsSubagent(Subagent[None, dict[str, Any]]):
             "red_flags": dd["red_flags"],
         }
         recommendation = "proceed" if val["accretive"] and dd["cleared"] else "hold"
+        # Confidential Information Memorandum assembled from the workstream outputs.
+        cim = {
+            "target": val["target"],
+            "sections": list(self._CIM_SECTIONS),
+            "financials": {"ebitda": val.get("ebitda")},
+            "valuation": {
+                "ev": val["ev"],
+                "proforma_eps": val.get("proforma_eps"),
+                "accretion_pct": val.get("accretion_pct"),
+                "accretive": val["accretive"],
+            },
+            "synergies": val.get("synergies"),
+            "diligence-findings": {
+                "cleared": dd["cleared"],
+                "red_flags": dd["red_flags"],
+                "open_workstreams": dd.get("open_workstreams", []),
+            },
+            "recommendation": recommendation,
+        }
         outcome = await self._guardrails.submit(
             self._tool,
             {"target": val["target"], "recommendation": recommendation},
             actor="corpdev",
             approver_role="board",
             rationale=f"deal recommendation '{recommendation}' for {val['target']}",
-            evidence=memo,
+            evidence={"memo": memo, "cim": cim},
             correlation_id=self._correlation_id,
         )
         return {
             "memo": memo,
+            "cim": cim,
             "recommendation": recommendation,
             "approval_id": outcome.request.id if outcome.request else None,
         }

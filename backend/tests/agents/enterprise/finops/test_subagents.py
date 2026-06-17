@@ -88,6 +88,25 @@ async def test_dashboards_reporting_flags_anomaly_when_unreconciled() -> None:
     assert out["anomaly"] is True
 
 
+async def test_dashboards_reporting_publishes_per_source_tiles() -> None:
+    out = await DashboardsReportingSubagent(_gateway()).execute(
+        _ctx(
+            {
+                "data-pipelines": {
+                    "total_rows": 150.0,
+                    "reconciled": True,
+                    "by_source": {"gl": 100.0, "ap": 50.0},
+                    "missing": [],
+                }
+            }
+        )
+    )
+    assert "source:gl" in out["dashboards"]
+    assert "source:ap" in out["dashboards"]
+    assert out["published"] == len(out["dashboards"])
+    assert out["metrics"]["sources"] == 2
+
+
 # --- erp-administration (consequential SoD gate) --------------------------
 
 
@@ -128,6 +147,32 @@ async def test_erp_admin_no_changes_is_noop() -> None:
     assert guardrails.pending() == []
 
 
+async def test_erp_admin_applies_complete_master_data_record() -> None:
+    guardrails = _guardrails()
+    connectors = _connectors(
+        **{"change_type:vendor-acme": "master_data", "md_complete:vendor-acme": "yes"}
+    )
+    out = await ErpAdministrationSubagent(
+        ["vendor-acme"], _gateway(), guardrails, connectors
+    ).execute(_ctx({}))
+    assert out["master_data_changes"] == ["vendor-acme"]
+    assert out["applied"] == ["vendor-acme"]
+    assert out["rejected"] == []
+    assert guardrails.pending() == []  # master-data update is not SoD-gated
+
+
+async def test_erp_admin_rejects_incomplete_master_data_record() -> None:
+    guardrails = _guardrails()
+    connectors = _connectors(
+        **{"change_type:vendor-acme": "master_data", "md_complete:vendor-acme": "no"}
+    )
+    out = await ErpAdministrationSubagent(
+        ["vendor-acme"], _gateway(), guardrails, connectors
+    ).execute(_ctx({}))
+    assert out["rejected"] == ["vendor-acme"]
+    assert out["applied"] == []
+
+
 async def test_access_change_tool_is_consequential() -> None:
     assert AccessChangeTool().consequential is True
 
@@ -163,3 +208,23 @@ async def test_o2c_p2p_unhealthy_when_exceptions() -> None:
     connectors = _connectors(**{"kpi:cycle_time": "9", "kpi:exceptions": "2"})
     out = await O2cP2pProcessOwnerSubagent(_gateway(), connectors).execute(_ctx({}))
     assert out["healthy"] is False
+
+
+async def test_o2c_p2p_recommends_improvements_on_breach() -> None:
+    connectors = _connectors(
+        **{"kpi:cycle_time": "9", "kpi:exceptions": "2", "kpi:cycle_time_target": "5"}
+    )
+    out = await O2cP2pProcessOwnerSubagent(_gateway(), connectors).execute(_ctx({}))
+    assert out["over_target"] is True
+    assert out["action_required"] is True
+    assert "remediate-exceptions" in out["recommendations"]
+    assert "streamline-cycle-time" in out["recommendations"]
+
+
+async def test_o2c_p2p_no_actions_when_within_target() -> None:
+    connectors = _connectors(
+        **{"kpi:cycle_time": "3", "kpi:exceptions": "0", "kpi:cycle_time_target": "5"}
+    )
+    out = await O2cP2pProcessOwnerSubagent(_gateway(), connectors).execute(_ctx({}))
+    assert out["action_required"] is False
+    assert out["recommendations"] == []

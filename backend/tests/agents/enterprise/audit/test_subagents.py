@@ -60,6 +60,17 @@ async def test_audit_planning_scopes_controls() -> None:
     assert gw.usage.calls >= 1  # the model was consulted to risk-rank/scope
 
 
+async def test_audit_planning_risk_ranks_and_prioritises() -> None:
+    # c2 is the highest inherent risk; c3 is below the priority threshold.
+    connectors = _connectors(**{"risk:c1": "0.6", "risk:c2": "0.9", "risk:c3": "0.2"})
+    out = await AuditPlanningSubagent(
+        "FY26-rev", ["c1", "c2", "c3"], _gateway(), connectors, risk_threshold=0.5
+    ).execute(_ctx({}))
+    assert out["risk_ranked"] == ["c2", "c1", "c3"]
+    assert out["priority_controls"] == ["c2", "c1"]
+    assert out["risk_scores"]["c2"] == 0.9
+
+
 # --- control-test:<id> ----------------------------------------------------
 
 
@@ -162,3 +173,25 @@ async def test_remediation_tracking_clean_when_no_findings() -> None:
     )
     assert out["open"] == 0
     assert out["status"] == "clean"
+
+
+async def test_remediation_tracking_closes_items_from_tracker() -> None:
+    connectors = _connectors(**{"remediation:c1": "closed", "remediation:c3": "in_progress"})
+    out = await RemediationTrackingSubagent(connectors).execute(
+        _ctx({"findings-reporting": {"findings": ["c1", "c3"]}})
+    )
+    assert out["closed"] == 1
+    assert out["closed_items"] == ["c1"]
+    assert out["open"] == 1
+    assert out["items"] == ["c3"]
+    assert out["status"] == "tracking"
+
+
+async def test_remediation_tracking_reaches_closed_when_all_remediated() -> None:
+    connectors = _connectors(**{"remediation:c1": "closed", "remediation:c3": "closed"})
+    out = await RemediationTrackingSubagent(connectors).execute(
+        _ctx({"findings-reporting": {"findings": ["c1", "c3"]}})
+    )
+    assert out["open"] == 0
+    assert out["closed"] == 2
+    assert out["status"] == "closed"

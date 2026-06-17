@@ -48,23 +48,47 @@ class LaunchMandateTool(Tool[dict[str, Any], str]):
 
 
 class CoverageOriginationSubagent(Subagent[None, dict[str, Any]]):
-    """Sequential head: maintain sector coverage and qualify the mandate."""
+    """Sequential head: maintain sector coverage and tailor the pitch idea.
+
+    Tailors the recommended product to the client relationship strength and
+    sector momentum from the CRM/market connectors: positive sector momentum
+    leans to a capital-markets idea, otherwise an M&A idea, and a strong
+    relationship raises the priority.
+    """
 
     name = "coverage-origination"
 
-    def __init__(self, deal_id: str, client: str, sector: str, gateway: ClaudeGateway) -> None:
+    def __init__(
+        self,
+        deal_id: str,
+        client: str,
+        sector: str,
+        gateway: ClaudeGateway,
+        connectors: ToolRegistry | None = None,
+    ) -> None:
         self._deal_id = deal_id
         self._client = client
         self._sector = sector
         self._gateway = gateway
+        self._connectors = connectors
 
     async def execute(self, ctx: StepContext) -> dict[str, Any]:
         resp = await self._gateway.complete(prompt="qualify mandate", tier=ModelTier.HAIKU)
+        rating = momentum = 0.0
+        if self._connectors is not None:
+            rating = await _number(self._connectors, f"client:rating:{self._client}")
+            momentum = await _number(self._connectors, f"sector:momentum:{self._sector}")
+        recommended = "ecm-dcm-levfin" if momentum > 0 else "ma-execution"
         return {
             "qualified": True,
             "deal_id": self._deal_id,
             "client": self._client,
             "sector": self._sector,
+            "relationship_rating": rating,
+            "sector_momentum": momentum,
+            "recommended_product": recommended,
+            "ideas": [recommended],
+            "priority": "high" if rating >= 0.7 else "standard",
             "note": resp.text,
         }
 
@@ -81,22 +105,60 @@ class ModelingDiligenceSubagent(Subagent[None, dict[str, Any]]):
 
     async def execute(self, ctx: StepContext) -> dict[str, Any]:
         await self._gateway.complete(prompt="build model", tier=ModelTier.OPUS)
-        ev = await _number(self._connectors, f"financials:{self._deal_id}")
-        return {"enterprise_value": ev, "valuation_ready": True}
+        ebitda = await _number(self._connectors, f"ebitda:{self._deal_id}")
+        multiple = await _number(self._connectors, f"multiple:{self._deal_id}")
+        net_debt = await _number(self._connectors, f"net_debt:{self._deal_id}")
+        # EV from an EBITDA-multiple build when fundamentals are present; otherwise
+        # fall back to a directly-supplied enterprise value.
+        if ebitda > 0 and multiple > 0:
+            ev = round(ebitda * multiple, 2)
+            method = "ebitda-multiple"
+        else:
+            ev = await _number(self._connectors, f"financials:{self._deal_id}")
+            method = "direct"
+        return {
+            "enterprise_value": ev,
+            "equity_value": round(ev - net_debt, 2),
+            "ebitda": ebitda,
+            "multiple": multiple,
+            "net_debt": net_debt,
+            "method": method,
+            "valuation_ready": True,
+        }
 
 
 class MaterialsDraftingSubagent(Subagent[None, dict[str, Any]]):
-    """Parallel branch: draft pitch books / CIMs / board materials from the model."""
+    """Parallel branch: assemble the pitchbook / CIM / board materials from the model."""
 
     name = "materials-drafting"
+
+    # Standard pitchbook section flow.
+    _DECK_SECTIONS = (
+        "cover",
+        "executive-summary",
+        "market-overview",
+        "valuation",
+        "transaction-structure",
+        "next-steps",
+    )
 
     def __init__(self, gateway: ClaudeGateway) -> None:
         self._gateway = gateway
 
     async def execute(self, ctx: StepContext) -> dict[str, Any]:
         await self._gateway.complete(prompt="draft materials", tier=ModelTier.HAIKU)
-        ev = ctx.results["modeling-diligence"]["enterprise_value"]
-        return {"deck_ready": True, "enterprise_value": ev}
+        md = ctx.results["modeling-diligence"]
+        ev = md["enterprise_value"]
+        pitchbook = {
+            "sections": list(self._DECK_SECTIONS),
+            "page_count": len(self._DECK_SECTIONS),
+            "valuation": {
+                "enterprise_value": ev,
+                "equity_value": md.get("equity_value"),
+                "method": md.get("method"),
+            },
+        }
+        return {"deck_ready": True, "enterprise_value": ev, "pitchbook": pitchbook}
 
 
 class ComplianceGateSubagent(Subagent[None, dict[str, Any]]):

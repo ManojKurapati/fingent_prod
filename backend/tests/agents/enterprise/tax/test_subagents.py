@@ -91,10 +91,23 @@ async def test_international_tax_totals_foreign_credits() -> None:
     assert out["total"] == pytest.approx(30.0)
 
 
-async def test_audit_defence_surfaces_open_disputes() -> None:
+async def test_direct_tax_prepares_filing_per_jurisdiction() -> None:
+    connectors = _connectors(**{"income:US": "1000", "rate:US": "0.21"})
+    out = await DirectTaxComplianceSubagent(["US"], _gateway(), connectors).execute(_ctx({}))
+    assert out["filings"]["US"] == {
+        "form": "corporate-income",
+        "tax_due": 210.0,
+        "status": "ready",
+    }
+
+
+async def test_audit_defence_assembles_files_per_jurisdiction() -> None:
     connectors = _connectors(**{"dispute:US": "1", "dispute:UK": "0"})
     out = await AuditDefenceSubagent(["US", "UK"], _gateway(), connectors).execute(_ctx({}))
     assert out["open_disputes"] == ["US"]
+    assert out["defence_files"]["US"]["open_disputes"] == 1
+    assert out["defence_files"]["US"]["ready"] is True
+    assert out["defence_files"]["UK"]["open_disputes"] == 0
 
 
 # --- provision fan-in -----------------------------------------------------
@@ -139,3 +152,16 @@ async def test_filing_holds_external_submission_default_deny() -> None:
     pending = guardrails.pending()
     assert len(pending) == 1
     assert pending[0].tool_name == "tax_file_return"
+
+
+async def test_filing_assembles_defence_file_before_submission() -> None:
+    guardrails = _guardrails()
+    connectors = _connectors(**{"dispute:US": "2"})
+    out = await TaxFilingSubagent(
+        "ret-US-2026", "US", _gateway(), guardrails, connectors
+    ).execute(_ctx({}))
+    # the audit-defence file is assembled and attached to the held filing
+    assert out["defence_file"]["jurisdiction"] == "US"
+    assert out["defence_file"]["open_disputes"] == 2
+    pending = guardrails.pending()
+    assert pending[0].evidence["defence_file"]["open_disputes"] == 2

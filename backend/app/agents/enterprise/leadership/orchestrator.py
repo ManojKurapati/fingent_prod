@@ -58,9 +58,12 @@ class LeadershipOrchestrator(BaseOrchestrator[BoardPackRequest]):
         capital = CapitalStrategySubagent(
             request.target_leverage, self._gateway, self._connectors
         ).as_step(depends_on=("divisional-rollup",))
-        budget = BudgetPlanSignoffSubagent(self._gateway, self._connectors).as_step(
-            depends_on=("divisional-rollup",)
-        )
+        budget = BudgetPlanSignoffSubagent(
+            self._gateway,
+            self._connectors,
+            self._guardrails,
+            correlation_id=self._correlation_id,
+        ).as_step(depends_on=("divisional-rollup",))
         transform = TransformationSponsorSubagent(self._connectors, self._gateway).as_step(
             depends_on=("divisional-rollup",)
         )

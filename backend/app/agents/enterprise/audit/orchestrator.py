@@ -49,7 +49,9 @@ class AuditEngagementOrchestrator(BaseOrchestrator[EngagementRequest]):
 
     def build_graph(self, request: EngagementRequest) -> StepGraph:
         controls = request.controls
-        planning = AuditPlanningSubagent(request.engagement, controls, self._gateway).as_step()
+        planning = AuditPlanningSubagent(
+            request.engagement, controls, self._gateway, self._connectors
+        ).as_step()
 
         control_tests = [
             ControlTestSubagent(c, self._gateway, self._connectors).as_step(
@@ -65,6 +67,8 @@ class AuditEngagementOrchestrator(BaseOrchestrator[EngagementRequest]):
         findings = FindingsReportingSubagent(
             request.engagement, self._guardrails, correlation_id=self._correlation_id
         ).as_step(depends_on=tuple(s.name for s in testing))
-        remediation = RemediationTrackingSubagent().as_step(depends_on=("findings-reporting",))
+        remediation = RemediationTrackingSubagent(self._connectors).as_step(
+            depends_on=("findings-reporting",)
+        )
 
         return hybrid([planning, *testing, findings, remediation])

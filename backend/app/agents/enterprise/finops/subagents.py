@@ -73,7 +73,13 @@ class DataPipelinesSubagent(Subagent[None, dict[str, Any]]):
 
 
 class DashboardsReportingSubagent(Subagent[None, dict[str, Any]]):
-    """Sequential spine tail: render dashboards off reconciled data, flag anomalies."""
+    """Sequential spine tail: publish a dashboard catalog off reconciled data.
+
+    Builds a per-source drilldown tile for every reconciled source plus the
+    standard freshness/reconciliation/exceptions reporting tiles, and reports
+    the metrics behind them — so the published set reflects the actual data,
+    not a fixed list.
+    """
 
     name = "dashboards-reporting"
 
@@ -84,16 +90,34 @@ class DashboardsReportingSubagent(Subagent[None, dict[str, Any]]):
         await self._gateway.complete(prompt="refresh dashboards", tier=ModelTier.HAIKU)
         pipeline = ctx.results["data-pipelines"]
         rows: float = pipeline["total_rows"]
-        anomaly = not pipeline["reconciled"] or rows == 0
+        by_source: dict[str, float] = pipeline.get("by_source", {})
+        reconciled: bool = pipeline.get("reconciled", True)
+        missing: list[str] = pipeline.get("missing", [])
+        anomaly = not reconciled or rows == 0
+
+        source_tiles = [f"source:{s}" for s in sorted(by_source)]
+        dashboards = [*source_tiles, "freshness", "reconciliation", "exceptions"]
         return {
-            "dashboards": ["freshness", "reconciliation"],
+            "dashboards": dashboards,
+            "published": len(dashboards),
+            "metrics": {
+                "total_rows": rows,
+                "sources": len(by_source),
+                "missing_sources": len(missing),
+            },
             "rows": rows,
             "anomaly": anomaly,
         }
 
 
 class ErpAdministrationSubagent(Subagent[None, dict[str, Any]]):
-    """Parallel lane: process ERP access/config changes; SoD conflicts are gated."""
+    """Parallel lane: administer ERP access/config AND master data.
+
+    Each requested change is typed via the connector. Master-data changes
+    (vendor/customer/GL records) apply once their required fields validate and
+    are rejected when incomplete; access/config changes apply directly unless
+    they introduce a segregation-of-duties conflict, which is gated (default-deny).
+    """
 
     name = "erp-administration"
 
@@ -115,10 +139,23 @@ class ErpAdministrationSubagent(Subagent[None, dict[str, Any]]):
 
     async def execute(self, ctx: StepContext) -> dict[str, Any]:
         await self._gateway.complete(prompt="review access", tier=ModelTier.HAIKU)
+        applied: list[str] = []
+        master_data: list[str] = []
+        rejected: list[str] = []
         conflicts: list[str] = []
         approval_ids: list[str] = []
         for change in self._access_changes:
+            change_type = (await _status(self._connectors, f"change_type:{change}")) or "access"
+            if change_type == "master_data":
+                master_data.append(change)
+                # Master-data record applies only once its required fields validate.
+                if (await _status(self._connectors, f"md_complete:{change}")) == "yes":
+                    applied.append(change)
+                else:
+                    rejected.append(change)
+                continue
             if (await _status(self._connectors, f"sod_conflict:{change}")) != "yes":
+                applied.append(change)
                 continue
             conflicts.append(change)
             outcome = await self._guardrails.submit(
@@ -134,6 +171,9 @@ class ErpAdministrationSubagent(Subagent[None, dict[str, Any]]):
             approval_ids.append(outcome.request.id)
         return {
             "requested": len(self._access_changes),
+            "applied": sorted(applied),
+            "master_data_changes": sorted(master_data),
+            "rejected": sorted(rejected),
             "conflicts": sorted(conflicts),
             "approval_ids": approval_ids,
             "gated": len(conflicts),
@@ -157,7 +197,12 @@ class ProcessTransformationSubagent(Subagent[None, dict[str, Any]]):
 
 
 class O2cP2pProcessOwnerSubagent(Subagent[None, dict[str, Any]]):
-    """Parallel lane: monitor end-to-end O2C / P2P process KPIs."""
+    """Parallel lane: own O2C / P2P KPIs and drive improvement.
+
+    Monitors cycle time and exceptions against target and turns breaches into
+    concrete improvement actions (remediate exceptions, streamline cycle time)
+    rather than only reporting the numbers.
+    """
 
     name = "o2c-p2p-process-owner"
 
@@ -169,8 +214,20 @@ class O2cP2pProcessOwnerSubagent(Subagent[None, dict[str, Any]]):
         await self._gateway.complete(prompt="monitor process KPIs", tier=ModelTier.HAIKU)
         cycle_time = await _number(self._connectors, "kpi:cycle_time") or 0.0
         exceptions = await _number(self._connectors, "kpi:exceptions") or 0.0
+        target = await _number(self._connectors, "kpi:cycle_time_target")
+        target = target if target is not None else 5.0
+
+        recommendations: list[str] = []
+        if exceptions > 0:
+            recommendations.append("remediate-exceptions")
+        if cycle_time > target:
+            recommendations.append("streamline-cycle-time")
         return {
             "cycle_time": cycle_time,
             "exceptions": exceptions,
+            "target": target,
+            "over_target": cycle_time > target,
+            "recommendations": recommendations,
+            "action_required": bool(recommendations),
             "healthy": exceptions == 0,
         }

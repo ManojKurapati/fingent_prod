@@ -58,6 +58,7 @@ def make_file_handler(ctx: AppContext):  # type: ignore[no-untyped-def]
         orchestrator = TaxFilingOrchestrator(
             gateway=ctx.gateway,
             guardrails=ctx.guardrails,
+            connectors=ctx.connectors,
             correlation_id=job.id,
         )
         result = await orchestrator.run(request, emit=_forward(job.id, emit))

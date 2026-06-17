@@ -63,6 +63,28 @@ async def test_coverage_origination_qualifies_mandate() -> None:
     assert out["sector"] == "tech"
 
 
+async def test_coverage_tailors_idea_to_relationship_and_momentum() -> None:
+    connectors = _connectors(
+        **{"client:rating:acme": "0.8", "sector:momentum:tech": "1"}
+    )
+    out = await CoverageOriginationSubagent(
+        "d1", "acme", "tech", _gateway(), connectors
+    ).execute(_ctx({}))
+    # positive sector momentum -> capital-markets idea; strong relationship -> high priority
+    assert out["recommended_product"] == "ecm-dcm-levfin"
+    assert out["priority"] == "high"
+    assert out["ideas"] == ["ecm-dcm-levfin"]
+
+
+async def test_coverage_recommends_ma_when_momentum_soft() -> None:
+    connectors = _connectors(**{"client:rating:acme": "0.3", "sector:momentum:tech": "0"})
+    out = await CoverageOriginationSubagent(
+        "d1", "acme", "tech", _gateway(), connectors
+    ).execute(_ctx({}))
+    assert out["recommended_product"] == "ma-execution"
+    assert out["priority"] == "standard"
+
+
 # --- modeling-diligence ----------------------------------------------------
 
 
@@ -82,6 +104,18 @@ async def test_modeling_diligence_defaults_missing_financials_to_zero() -> None:
     assert out["enterprise_value"] == pytest.approx(0.0)
 
 
+async def test_modeling_diligence_builds_ev_from_ebitda_multiple() -> None:
+    connectors = _connectors(
+        **{"ebitda:d1": "100", "multiple:d1": "8", "net_debt:d1": "150"}
+    )
+    out = await ModelingDiligenceSubagent("d1", _gateway(), connectors).execute(
+        _ctx({"coverage-origination": {"qualified": True}})
+    )
+    assert out["method"] == "ebitda-multiple"
+    assert out["enterprise_value"] == pytest.approx(800.0)
+    assert out["equity_value"] == pytest.approx(650.0)
+
+
 # --- materials-drafting ----------------------------------------------------
 
 
@@ -91,6 +125,25 @@ async def test_materials_drafting_builds_deck_from_valuation() -> None:
     )
     assert out["deck_ready"] is True
     assert out["enterprise_value"] == pytest.approx(500.0)
+
+
+async def test_materials_drafting_assembles_pitchbook_sections() -> None:
+    out = await MaterialsDraftingSubagent(_gateway()).execute(
+        _ctx(
+            {
+                "modeling-diligence": {
+                    "enterprise_value": 500.0,
+                    "equity_value": 350.0,
+                    "method": "ebitda-multiple",
+                    "valuation_ready": True,
+                }
+            }
+        )
+    )
+    book = out["pitchbook"]
+    assert "valuation" in book["sections"]
+    assert book["page_count"] == len(book["sections"])
+    assert book["valuation"]["equity_value"] == pytest.approx(350.0)
 
 
 # --- compliance-gate (MANDATORY) -------------------------------------------

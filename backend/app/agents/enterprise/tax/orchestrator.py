@@ -82,10 +82,12 @@ class TaxFilingOrchestrator(BaseOrchestrator[FileRequest]):
         *,
         gateway: ClaudeGateway,
         guardrails: GuardrailEngine,
+        connectors: ToolRegistry | None = None,
         correlation_id: str | None = None,
     ) -> None:
         self._gateway = gateway
         self._guardrails = guardrails
+        self._connectors = connectors
         self._correlation_id = correlation_id
 
     def build_graph(self, request: FileRequest) -> StepGraph:
@@ -94,6 +96,7 @@ class TaxFilingOrchestrator(BaseOrchestrator[FileRequest]):
             request.jurisdiction,
             self._gateway,
             self._guardrails,
+            self._connectors,
             correlation_id=self._correlation_id,
         ).as_step()
         return sequential([filing])

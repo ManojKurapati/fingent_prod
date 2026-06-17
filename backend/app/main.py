@@ -15,7 +15,7 @@ def create_app(context: AppContext | None = None) -> FastAPI:
     Pass a ``context`` to inject test fakes; otherwise the default in-process
     context is built. Group-agent routers are discovered automatically.
     """
-    app = FastAPI(title="AI-Native Finance Platform", version="0.1.0")
+    app = FastAPI(title="Fingent — AI-Native Financial Services Platform", version="0.1.0")
     app.state.context = context or build_context()
 
     app.include_router(platform_router)

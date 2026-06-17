@@ -134,6 +134,24 @@ async def test_budget_signoff_stages_variance_against_plan() -> None:
     assert out["staged"] is True
     assert out["budget"] == pytest.approx(200.0)
     assert out["variance"] == pytest.approx(50.0)
+    # with no guardrail wired it only stages — nothing is signed off
+    assert out["signed_off"] is False
+    assert out["approval_id"] is None
+
+
+async def test_budget_signoff_routes_through_guardrail_default_deny() -> None:
+    guardrails = _guardrails()
+    connectors = _connectors(**{"budget:plan": "200"})
+    out = await BudgetPlanSignoffSubagent(_gateway(), connectors, guardrails).execute(
+        _ctx({"divisional-rollup": {"group_pnl": 250.0}})
+    )
+    # committing the budget is consequential: held for board sign-off, not approved
+    assert out["signed_off"] is False
+    assert out["approval_id"] is not None
+    pending = guardrails.pending()
+    assert len(pending) == 1
+    assert pending[0].tool_name == "leadership_approve_budget"
+    assert pending[0].approver_role == "board"
 
 
 # --- transformation-sponsor ------------------------------------------------

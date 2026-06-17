@@ -63,7 +63,7 @@ class InvestmentBankingOrchestrator(BaseOrchestrator[MandateRequest]):
 
     def build_graph(self, request: MandateRequest) -> StepGraph:
         coverage = CoverageOriginationSubagent(
-            request.deal_id, request.client, request.sector, self._gateway
+            request.deal_id, request.client, request.sector, self._gateway, self._connectors
         ).as_step()
         diligence = ModelingDiligenceSubagent(
             request.deal_id, self._gateway, self._connectors

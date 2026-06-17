@@ -37,6 +37,20 @@ class PublishBoardPackTool(Tool[dict[str, Any], str]):
         return f"published:{payload.get('period')}"
 
 
+class ApproveBudgetTool(Tool[dict[str, Any], str]):
+    """Consequential: commit the annual budget / long-range plan once signed off.
+
+    Approving the budget binds the org to a spend plan, so it is gated by the
+    guardrail engine (board/CFO sign-off) and never committed directly.
+    """
+
+    name = "leadership_approve_budget"
+    consequential = True
+
+    async def invoke(self, payload: dict[str, Any]) -> str:
+        return f"budget-approved:{payload.get('budget')}"
+
+
 class DivisionalRollupSubagent(Subagent[None, dict[str, Any]]):
     """Sequential head: consolidate divisional P&L into a group view."""
 
@@ -130,24 +144,55 @@ class BoardInvestorReportingSubagent(Subagent[None, dict[str, Any]]):
 
 
 class BudgetPlanSignoffSubagent(Subagent[None, dict[str, Any]]):
-    """Independent lane: stage the annual budget / long-range plan for sign-off."""
+    """Independent lane: stage the annual budget and route it for human sign-off.
+
+    Staging computes the plan-vs-actual variance; committing the budget is a
+    consequential action, so — when a guardrail engine is wired — it is submitted
+    for board/CFO sign-off (default-deny) rather than treated as approved.
+    """
 
     name = "budget-plan-signoff"
 
-    def __init__(self, gateway: ClaudeGateway, connectors: ToolRegistry) -> None:
+    def __init__(
+        self,
+        gateway: ClaudeGateway,
+        connectors: ToolRegistry,
+        guardrails: GuardrailEngine | None = None,
+        *,
+        correlation_id: str | None = None,
+    ) -> None:
         self._gateway = gateway
         self._connectors = connectors
+        self._guardrails = guardrails
+        self._correlation_id = correlation_id
+        self._tool = ApproveBudgetTool()
 
     async def execute(self, ctx: StepContext) -> dict[str, Any]:
         await self._gateway.complete(prompt="stage budget signoff", tier=ModelTier.HAIKU)
         budget = await _number(self._connectors, "budget:plan")
         group_pnl: float = ctx.results["divisional-rollup"]["group_pnl"]
-        return {
+        variance = group_pnl - budget
+        result: dict[str, Any] = {
             "staged": True,
             "budget": budget,
             "group_pnl": group_pnl,
-            "variance": group_pnl - budget,
+            "variance": variance,
+            "signed_off": False,
+            "approval_id": None,
         }
+        if self._guardrails is not None:
+            outcome = await self._guardrails.submit(
+                self._tool,
+                {"budget": budget, "variance": variance},
+                actor="leadership",
+                approver_role="board",
+                rationale=f"sign off annual budget of {budget} (variance {variance})",
+                evidence={"budget": budget, "group_pnl": group_pnl, "variance": variance},
+                correlation_id=self._correlation_id,
+            )
+            result["signed_off"] = outcome.executed
+            result["approval_id"] = outcome.request.id if outcome.request else None
+        return result
 
 
 class TransformationSponsorSubagent(Subagent[None, dict[str, Any]]):

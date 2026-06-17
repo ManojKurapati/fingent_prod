@@ -1,0 +1,51 @@
+# AI-Native Finance Platform — local container stack.
+#
+# Two services that actually run today: the FastAPI backend (in-memory fakes +
+# stub Claude transport) and the React frontend served by nginx, which proxies
+# the API to the backend. Postgres / Redis / a real Anthropic transport are in
+# the target architecture (see CLAUDE.md) but are NOT yet wired into the app, so
+# they are left commented out below until the production context is implemented.
+
+services:
+  backend:
+    build:
+      context: ./backend
+    image: finance-platform-backend:local
+    environment:
+      # Currently unused by app code (default context uses a stub transport);
+      # set once the production Anthropic transport is wired. Pulled from .env.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+    image: finance-platform-frontend:local
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+
+  # --- target architecture, not yet wired into app context (CLAUDE.md §3) ---
+  # db:
+  #   image: postgres:16-alpine
+  #   environment:
+  #     POSTGRES_USER: finance
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finance}
+  #     POSTGRES_DB: finance
+  #   volumes: [pgdata:/var/lib/postgresql/data]
+  #   ports: ["5432:5432"]
+  #
+  # redis:
+  #   image: redis:7-alpine
+  #   ports: ["6379:6379"]
+  #
+  # volumes:
+  #   pgdata:

@@ -111,8 +111,9 @@ async def test_run_holds_board_pack_publish_for_approval() -> None:
     orch, guardrails = _orchestrator()
     await orch.run(_request())
     pending = guardrails.pending()
-    assert len(pending) == 1
-    assert pending[0].tool_name == "leadership_publish_board_pack"
+    # two consequential gates: external board-pack publish + annual budget sign-off
+    tool_names = {p.tool_name for p in pending}
+    assert tool_names == {"leadership_publish_board_pack", "leadership_approve_budget"}
 
 
 # --- standalone capital-scenario path (sequential) -------------------------

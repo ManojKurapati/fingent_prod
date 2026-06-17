@@ -8,7 +8,7 @@ import { sampleApproval, server } from './test/server'
 describe('App shell', () => {
   it('renders the platform heading', () => {
     render(<App />)
-    expect(screen.getByRole('heading', { name: /finance platform/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /fingent/i })).toBeInTheDocument()
   })
 
   it('shows the approvals queue region', () => {
