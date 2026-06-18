@@ -27,6 +27,11 @@ export function TreasuryPage({ eventSource }: TreasuryPageProps) {
   const [events, setEvents] = useState<JobEvent[]>([])
   const [approvals, setApprovals] = useState<Approval[]>([])
   const [selected, setSelected] = useState<Approval | null>(null)
+  const [hedgePair, setHedgePair] = useState('EURUSD')
+  const [hedgeNotional, setHedgeNotional] = useState('500')
+  const [sweepFrom, setSweepFrom] = useState('a1')
+  const [sweepTo, setSweepTo] = useState('a2')
+  const [sweepAmount, setSweepAmount] = useState('250')
   const unsubscribe = useRef<(() => void) | null>(null)
 
   const refresh = useCallback(async () => {
@@ -55,14 +60,18 @@ export function TreasuryPage({ eventSource }: TreasuryPageProps) {
   }, [eventSource])
 
   const requestHedge = useCallback(async () => {
-    await executeHedge({ pair: 'EURUSD', notional: 500 })
+    await executeHedge({ pair: hedgePair, notional: Number(hedgeNotional) || 0 })
     void refresh()
-  }, [refresh])
+  }, [refresh, hedgePair, hedgeNotional])
 
   const requestSweep = useCallback(async () => {
-    await executeSweep({ from_account: 'a1', to_account: 'a2', amount: 250 })
+    await executeSweep({
+      from_account: sweepFrom,
+      to_account: sweepTo,
+      amount: Number(sweepAmount) || 0,
+    })
     void refresh()
-  }, [refresh])
+  }, [refresh, sweepFrom, sweepTo, sweepAmount])
 
   const handleApprove = useCallback(
     async (approver: string) => {
@@ -90,6 +99,11 @@ export function TreasuryPage({ eventSource }: TreasuryPageProps) {
 
       <section aria-label="Daily position">
         <h2>Daily cash position</h2>
+        <p className="section-desc">
+          Builds today's consolidated cash picture across bank accounts. Press Run daily position and
+          the cash → liquidity → hedging/covenants spine streams live, turning green as each subagent
+          finishes. This step is read-only — it reports positions and does not move any cash.
+        </p>
         <button type="button" onClick={() => void runDailyPosition()}>
           Run daily position
         </button>
@@ -98,9 +112,64 @@ export function TreasuryPage({ eventSource }: TreasuryPageProps) {
 
       <section aria-label="Cash movement">
         <h2>Cash movement (gated)</h2>
+        <p className="section-desc">
+          Initiates real cash moves — an FX hedge or an inter-account sweep. Set the trade details
+          below and press the action; because these are default-deny, nothing executes immediately.
+          Each request surfaces in the pending approvals list below and only fires once a Treasurer
+          signs off.
+        </p>
+        <div className="field-row">
+          <label>
+            Hedge pair
+            <input
+              value={hedgePair}
+              onChange={(e) => setHedgePair(e.target.value)}
+              placeholder="EURUSD"
+            />
+            <span className="field-hint">FX pair to hedge, e.g. EURUSD.</span>
+          </label>
+          <label>
+            Hedge notional
+            <input
+              type="number"
+              min="0"
+              value={hedgeNotional}
+              onChange={(e) => setHedgeNotional(e.target.value)}
+              placeholder="500"
+            />
+            <span className="field-hint">Notional to hedge, in base currency.</span>
+          </label>
+        </div>
         <button type="button" onClick={() => void requestHedge()}>
           Execute hedge
         </button>
+        <div className="field-row">
+          <label>
+            Sweep from
+            <input
+              value={sweepFrom}
+              onChange={(e) => setSweepFrom(e.target.value)}
+              placeholder="a1"
+            />
+            <span className="field-hint">Source account to debit.</span>
+          </label>
+          <label>
+            Sweep to
+            <input value={sweepTo} onChange={(e) => setSweepTo(e.target.value)} placeholder="a2" />
+            <span className="field-hint">Destination account to credit.</span>
+          </label>
+          <label>
+            Sweep amount
+            <input
+              type="number"
+              min="0"
+              value={sweepAmount}
+              onChange={(e) => setSweepAmount(e.target.value)}
+              placeholder="250"
+            />
+            <span className="field-hint">Cash to move between the accounts.</span>
+          </label>
+        </div>
         <button type="button" onClick={() => void requestSweep()}>
           Sweep cash
         </button>
@@ -108,6 +177,11 @@ export function TreasuryPage({ eventSource }: TreasuryPageProps) {
 
       <section aria-label="Cash movement approvals">
         <h2>Pending cash-movement approvals</h2>
+        <p className="section-desc">
+          A human-in-the-loop gate for cash moves: held hedges and sweeps wait here until a Treasurer
+          signs off. Click an item to review the instruction and rationale, then approve to release
+          the cash or reject to hold it — nothing moves without approval.
+        </p>
         {approvals.length === 0 ? (
           <p>No cash movements awaiting approval</p>
         ) : (

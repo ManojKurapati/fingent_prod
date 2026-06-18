@@ -107,6 +107,11 @@ export function FpaPage({ eventSource }: FpaPageProps) {
 
       <section aria-label="Live variance grid">
         <h2>Variance by cost centre</h2>
+        <p className="section-desc">
+          Fans out a forecast-vs-actuals run across every cost centre for the planning period; each
+          row turns green as a worker finishes. Cost centres breaching the variance threshold raise a
+          commentary request in the queue below for a human to explain before it is finalised.
+        </p>
         <button type="button" onClick={() => void runForecast()}>
           Run forecast
         </button>
@@ -115,6 +120,11 @@ export function FpaPage({ eventSource }: FpaPageProps) {
 
       <section aria-label="Scenario sandbox">
         <h2>Scenario sandbox</h2>
+        <p className="section-desc">
+          A read-only what-if: enter a price driver delta and run it to see the base plan re-modelled
+          to an adjusted number. Nothing is posted — this is for testing assumptions before you commit
+          them to a forecast.
+        </p>
         <label>
           Driver (price delta)
           <input
@@ -122,7 +132,11 @@ export function FpaPage({ eventSource }: FpaPageProps) {
             step="0.01"
             value={driver}
             onChange={(e) => setDriver(e.target.value)}
+            placeholder="0.05"
           />
+          <span className="field-hint">
+            Fractional change in price, e.g. 0.05 for a 5% increase.
+          </span>
         </label>
         <button type="button" onClick={() => void runScenario()}>
           Run scenario
@@ -139,6 +153,11 @@ export function FpaPage({ eventSource }: FpaPageProps) {
 
       <section aria-label="Commentary requests">
         <h2>Variance commentary requests</h2>
+        <p className="section-desc">
+          Human-in-the-loop gate: cost centres that breached the variance threshold land here. Click
+          one to review the variance, then approve to attach your commentary and finalise it, or
+          reject to hold it for rework — nothing is finalised without your sign-off.
+        </p>
         {approvals.length === 0 ? (
           <p>No commentary requests</p>
         ) : (

@@ -104,6 +104,11 @@ export function TaxPage({ eventSource }: TaxPageProps) {
 
       <section aria-label="Provision and ETR">
         <h2>Provision &amp; ETR</h2>
+        <p className="section-desc">
+          Runs the tax-provision roll-forward across jurisdictions for the period. Press Run
+          provision and each tax-type stream turns green as its subagent finishes; when complete it
+          shows current and deferred tax and the resulting effective tax rate (ETR).
+        </p>
         <button type="button" onClick={() => void runProvision()}>
           Run provision
         </button>
@@ -122,9 +127,19 @@ export function TaxPage({ eventSource }: TaxPageProps) {
 
       <section aria-label="Filing tracker">
         <h2>Filing tracker</h2>
+        <p className="section-desc">
+          Submits a prepared tax return for filing. Enter the return reference and press File return
+          to raise it — because a filing is an external, consequential action it does not file
+          immediately; it surfaces as a filing approval below and is only filed once approved.
+        </p>
         <label>
           Return ID
-          <input value={returnId} onChange={(e) => setReturnId(e.target.value)} />
+          <input
+            value={returnId}
+            onChange={(e) => setReturnId(e.target.value)}
+            placeholder="ret-US-2026"
+          />
+          <span className="field-hint">Identifier of the prepared return, e.g. ret-US-2026.</span>
         </label>
         <button type="button" onClick={() => void submitFiling()}>
           File return
@@ -133,6 +148,11 @@ export function TaxPage({ eventSource }: TaxPageProps) {
 
       <section aria-label="Filing approvals">
         <h2>Filing approvals</h2>
+        <p className="section-desc">
+          A human-in-the-loop gate for external filings: returns wait here until the head of tax
+          signs off. Click an item to review the return and rationale, then approve to file it with
+          the authority or reject to hold — nothing is filed without approval.
+        </p>
         {approvals.length === 0 ? (
           <p>No filing approvals</p>
         ) : (

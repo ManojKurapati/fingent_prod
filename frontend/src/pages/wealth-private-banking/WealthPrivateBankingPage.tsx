@@ -88,6 +88,11 @@ export function WealthPrivateBankingPage({ eventSource }: WealthPrivateBankingPa
 
       <section aria-label="Client onboarding">
         <h2>Client onboarding &amp; plan</h2>
+        <p className="section-desc">
+          Runs the private-client onboarding flow — KYC/AML checks, risk profiling, and the initial
+          financial plan. Click onboard to dispatch the subagents; each stage greens as it
+          completes, building the client 360 that suitability decisions below depend on.
+        </p>
         <button type="button" onClick={() => void runOnboarding()}>
           Onboard client
         </button>
@@ -96,6 +101,11 @@ export function WealthPrivateBankingPage({ eventSource }: WealthPrivateBankingPa
 
       <section aria-label="Suitability actions">
         <h2>Proposed actions</h2>
+        <p className="section-desc">
+          Stages a consequential client action for review — a discretionary portfolio rebalance or a
+          Lombard credit facility. Clicking a button drafts the proposal and routes it to suitability
+          sign-off below; nothing books here, it only raises the action for an advisor to clear.
+        </p>
         <button type="button" onClick={() => void proposeRebalance()}>
           Propose rebalance
         </button>
@@ -106,6 +116,12 @@ export function WealthPrivateBankingPage({ eventSource }: WealthPrivateBankingPa
 
       <section aria-label="Suitability sign-off">
         <h2>Suitability sign-off</h2>
+        <p className="section-desc">
+          This is the human-in-the-loop suitability gate: rebalances and credit facilities are
+          default-deny and held here until an advisor decides. Click an item to review the
+          suitability rationale, then approve to book the asset move or extend credit, or reject to
+          hold — nothing executes without sign-off.
+        </p>
         {approvals.length === 0 ? (
           <p>No actions pending sign-off</p>
         ) : (

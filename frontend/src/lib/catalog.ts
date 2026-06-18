@@ -56,6 +56,12 @@ export const ORGANISATIONS: Organisation[] = [
     tagline: 'Front-to-back lines of business — markets, lending, advisory.',
     icon: '📈',
   },
+  {
+    id: 'mixed',
+    name: 'Cross-Cutting',
+    tagline: 'The modelling, data & delivery backbone every function depends on.',
+    icon: '🧬',
+  },
 ]
 
 // ---- connectable portals (the systems the org already runs) ---------------
@@ -345,6 +351,21 @@ export const GROUPS: AgentGroup[] = [
     ],
     agents: ['actuarial', 'cat-modelling', 'underwriting', 'claims', 'reinsurance', 'product'],
   },
+
+  // ---------------- Cross-Cutting (both contexts) ----------------
+  {
+    id: 'cross-cutting', org: 'mixed', navLabel: 'Cross-Cutting', title: 'Cross-Cutting Services', icon: '🧬', page: 'cross-cutting',
+    portals: ['anthropic', 'snowflake', 'sharepoint'],
+    blurb: 'Modelling, BI, data, ESG, programme & vendor backbone for every function.',
+    capabilities: [
+      'Build integrated three-statement, forecasting & valuation models',
+      'Stand up BI dashboards with one source of truth for every KPI',
+      'Engineer finance/risk data pipelines and curated data marts',
+      'Prepare ESG disclosures (SFDR, TCFD, CSRD) and integrate climate risk',
+      'Run finance-transformation programmes, vendor risk & shared-services delivery',
+    ],
+    agents: ['financial-modelling', 'business-intelligence', 'data-engineering', 'esg-sustainability', 'programme-management', 'vendor-management', 'shared-services'],
+  },
 ]
 
 export const GROUPS_BY_ID: Record<string, AgentGroup> = Object.fromEntries(GROUPS.map((g) => [g.id, g]))
@@ -359,7 +380,7 @@ export function groupsForOrg(orgId: string): AgentGroup[] {
 const ACRONYMS: Record<string, string> = {
   fx: 'FX', ma: 'M&A', ecm: 'ECM', dcm: 'DCM', levfin: 'LevFin', pe: 'PE', vc: 'VC',
   aml: 'AML', kyc: 'KYC', erp: 'ERP', sox: 'SOX', erm: 'ERM', rm: 'RM', ic: 'IC',
-  pm: 'PM', o2c: 'O2C', p2p: 'P2P', etr: 'ETR', mgmt: 'Mgmt',
+  pm: 'PM', o2c: 'O2C', p2p: 'P2P', etr: 'ETR', mgmt: 'Mgmt', esg: 'ESG', bi: 'BI',
 }
 
 /** Turn a kebab-case subagent slug (`pre-trade-risk-gate`) into a readable

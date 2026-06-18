@@ -99,6 +99,12 @@ export function TransactionalPage({ eventSource }: TransactionalPageProps) {
 
       <section aria-label="Operational cycle">
         <h2>Operational cycle</h2>
+        <p className="section-desc">
+          Drives the operational-finance lanes for the period — billing/AR, AP, and payroll. Run
+          cycle streams every lane live (each row greens as its subagent finishes); Run AP payment
+          run triggers the accounts-payable disbursement, which is a cash move and surfaces for
+          approval below before any funds leave.
+        </p>
         <button type="button" onClick={() => void runCycle()}>
           Run cycle
         </button>
@@ -110,6 +116,11 @@ export function TransactionalPage({ eventSource }: TransactionalPageProps) {
 
       <section aria-label="Payment approvals">
         <h2>Cash-movement approvals</h2>
+        <p className="section-desc">
+          A human-in-the-loop gate for outbound cash: AP runs and payroll disbursements wait here
+          until approved. Click an item to review the beneficiaries, amount and rationale, then
+          approve to release payment or reject to hold — no cash leaves without your sign-off.
+        </p>
         {approvals.length === 0 ? (
           <p>No payment approvals</p>
         ) : (

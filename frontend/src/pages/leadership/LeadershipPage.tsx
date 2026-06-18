@@ -102,6 +102,11 @@ export function LeadershipPage({ eventSource }: LeadershipPageProps) {
 
       <section aria-label="Board pack synthesis">
         <h2>Board pack synthesis</h2>
+        <p className="section-desc">
+          Assembles the quarterly CFO board pack — division roll-ups and capital strategy — running it
+          against the target leverage you set in the sandbox below; each step turns green as a worker
+          finishes. When complete, publishing the pack waits on the CFO approval gate further down.
+        </p>
         <button type="button" onClick={() => void runBoardPack()}>
           Run board pack
         </button>
@@ -110,6 +115,11 @@ export function LeadershipPage({ eventSource }: LeadershipPageProps) {
 
       <section aria-label="Capital scenario sandbox">
         <h2>Capital scenario sandbox</h2>
+        <p className="section-desc">
+          A read-only what-if on the balance sheet: set a target leverage ratio and run it to see the
+          modelled leverage and a financing recommendation. Nothing is committed — use it to size the
+          capital structure before the board pack run picks up the same target.
+        </p>
         <label>
           Target leverage
           <input
@@ -117,7 +127,11 @@ export function LeadershipPage({ eventSource }: LeadershipPageProps) {
             step="0.05"
             value={target}
             onChange={(e) => setTarget(e.target.value)}
+            placeholder="0.4"
           />
+          <span className="field-hint">
+            Target net-debt-to-EBITDA ratio, e.g. 0.4 for 40%.
+          </span>
         </label>
         <button type="button" onClick={() => void runCapital()}>
           Run capital scenario
@@ -134,6 +148,11 @@ export function LeadershipPage({ eventSource }: LeadershipPageProps) {
 
       <section aria-label="Board pack approvals">
         <h2>Board pack approvals</h2>
+        <p className="section-desc">
+          The CFO gate: a synthesised board pack waits here before it can be published to the board.
+          Click it to review the contents, then approve to release it or reject to hold it for
+          revision — the pack is never published without the CFO&apos;s sign-off.
+        </p>
         {approvals.length === 0 ? (
           <p>No board pack approvals</p>
         ) : (

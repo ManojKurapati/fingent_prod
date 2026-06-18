@@ -97,12 +97,20 @@ export function SalesTradingPage({ eventSource }: SalesTradingPageProps) {
 
       <section aria-label="Desk blotter">
         <h2>Desk blotter</h2>
+        <p className="section-desc">
+          Stage a markets order and run it through the desk pipeline — parallel feeds → pre-trade
+          risk gate → gated execution. Pick the side, then submit: the timeline greens as each
+          subagent finishes, and if the order clears the risk gate it surfaces below as a
+          trader/limit sign-off. Nothing routes to market until that approval is granted, and an
+          over-limit or unsuitable order is blocked outright with nothing to approve.
+        </p>
         <label>
           Side
           <select value={side} onChange={(e) => setSide(e.target.value as Side)}>
             <option value="buy">buy</option>
             <option value="sell">sell</option>
           </select>
+          <span className="field-hint">Buy or sell direction for the order.</span>
         </label>
         <button type="button" onClick={() => void runOrder()}>
           Submit order
@@ -112,6 +120,12 @@ export function SalesTradingPage({ eventSource }: SalesTradingPageProps) {
 
       <section aria-label="Routing approvals">
         <h2>Order routing approvals</h2>
+        <p className="section-desc">
+          These are the human-in-the-loop gates for order routing. Each item is an order that
+          cleared the pre-trade risk gate and is now waiting on a trader/limit sign-off. Click one to
+          review the rationale, then approve to release it to market or reject to hold it — no order
+          is routed without an approval here.
+        </p>
         {approvals.length === 0 ? (
           <p>No routing approvals pending</p>
         ) : (

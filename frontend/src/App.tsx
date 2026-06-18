@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useState, type ComponentType } from 'react'
 import { AgentCatalog } from './components/AgentCatalog'
 import { ApprovalDrawer } from './components/ApprovalDrawer'
+import { GroupIntro } from './components/GroupIntro'
 import { Integrations } from './components/Integrations'
 import { approveRequest, listApprovals, rejectRequest } from './lib/api'
 import { GROUPS, ORGANISATIONS, groupsForOrg } from './lib/catalog'
@@ -16,6 +17,7 @@ import { AccountingPage } from './pages/accounting/AccountingPage'
 import { AssetManagementPage } from './pages/asset-investment-management/AssetManagementPage'
 import { AuditPage } from './pages/audit/AuditPage'
 import { CorpDevPage } from './pages/corpdev/CorpDevPage'
+import { CrossCuttingPage } from './pages/cross-cutting/CrossCuttingPage'
 import { FinOpsPage } from './pages/finops/FinOpsPage'
 import { FpaPage } from './pages/fpa/FpaPage'
 import { InvestmentBankingPage } from './pages/investment-banking/InvestmentBankingPage'
@@ -51,6 +53,7 @@ const PAGES: Record<string, ComponentType> = {
   'wealth-private-banking': WealthPrivateBankingPage,
   'private-markets': PrivateMarketsPage,
   product: ProductPage,
+  'cross-cutting': CrossCuttingPage,
 }
 
 const TITLES: Record<string, string> = {
@@ -177,7 +180,12 @@ export function App() {
 
         {view === 'catalog' && <AgentCatalog onOpen={(p) => setView(p)} />}
         {view === 'integrations' && <Integrations />}
-        {PageComponent && <PageComponent />}
+        {PageComponent && (
+          <>
+            <GroupIntro page={view} />
+            <PageComponent />
+          </>
+        )}
       </main>
 
       <ApprovalDrawer

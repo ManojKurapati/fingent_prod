@@ -85,6 +85,12 @@ export function QuantPage({ eventSource }: QuantPageProps) {
 
       <section aria-label="Research fan-out">
         <h2>Research workstreams</h2>
+        <p className="section-desc">
+          Kick off the parallel quant research fan-out across the six workstreams. Run it and the
+          timeline greens as each workstream finishes — this is read-only research that produces
+          candidate models; nothing reaches production from here until it is promoted and approved
+          below.
+        </p>
         <button type="button" onClick={() => void runResearch()}>
           Run research
         </button>
@@ -93,14 +99,36 @@ export function QuantPage({ eventSource }: QuantPageProps) {
 
       <section aria-label="Promote to production">
         <h2>Promote model</h2>
-        <label>
-          Model id
-          <input value={modelId} onChange={(e) => setModelId(e.target.value)} />
-        </label>
-        <label>
-          Validation token
-          <input value={token} onChange={(e) => setToken(e.target.value)} />
-        </label>
+        <p className="section-desc">
+          Request promotion of a candidate model to production. Enter the model id and paste the
+          independent model-validation token issued by the Risk Agent, then promote: promotion is
+          default-deny and is blocked unless that token clears, so a candidate with no valid token
+          never raises an approval. Cleared requests appear below for a head-of-quant sign-off before
+          anything goes live.
+        </p>
+        <div className="field-row">
+          <label>
+            Model id
+            <input
+              value={modelId}
+              onChange={(e) => setModelId(e.target.value)}
+              placeholder="M1"
+            />
+            <span className="field-hint">Registry id of the candidate model to promote.</span>
+          </label>
+          <label>
+            Validation token
+            <input
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
+              placeholder="VT-1"
+            />
+            <span className="field-hint">
+              Independent validation token from the Risk Agent; leave blank if none (promotion will
+              be blocked).
+            </span>
+          </label>
+        </div>
         <button type="button" onClick={() => void runPromote()}>
           Promote
         </button>
@@ -108,6 +136,12 @@ export function QuantPage({ eventSource }: QuantPageProps) {
 
       <section aria-label="Promotion approvals">
         <h2>Promotion approvals</h2>
+        <p className="section-desc">
+          These are the human-in-the-loop promote-to-production gates. Each item is a validated model
+          waiting on a head-of-quant sign-off. Click one to review the rationale, then approve to
+          promote it to production or reject to send it back — no model goes live without an approval
+          here.
+        </p>
         {approvals.length === 0 ? (
           <p>No promotions awaiting approval</p>
         ) : (

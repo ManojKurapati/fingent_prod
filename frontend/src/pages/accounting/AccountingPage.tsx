@@ -79,6 +79,11 @@ export function AccountingPage({ eventSource }: AccountingPageProps) {
 
       <section aria-label="Close checklist">
         <h2>Period close</h2>
+        <p className="section-desc">
+          Kicks off the month-end close for the current period across all entities. Press Start
+          close and each sub-ledger row (journal entries, reconciliations, consolidation) turns
+          green as its subagent finishes — the resulting GL post still waits for your approval below.
+        </p>
         <button type="button" onClick={() => void runClose()}>
           Start close
         </button>
@@ -87,6 +92,11 @@ export function AccountingPage({ eventSource }: AccountingPageProps) {
 
       <section aria-label="Ledger post approvals">
         <h2>Journal-entry approvals</h2>
+        <p className="section-desc">
+          A human-in-the-loop gate: nothing posts to the general ledger automatically. Click a
+          pending journal entry to review the debits, credits and rationale, then approve to post it
+          or reject to hold — no entry hits the ledger without your sign-off.
+        </p>
         {approvals.length === 0 ? (
           <p>No ledger posts awaiting approval</p>
         ) : (

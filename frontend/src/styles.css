@@ -702,6 +702,50 @@ input:focus, select:focus, textarea:focus {
 }
 .howto li strong { color: var(--ink); }
 
+/* ====================== group dashboard intro ======================== */
+
+/* Context panel at the top of every group dashboard. It is a <section>, so it
+   inherits the glass card look; these rules add the header + collapsible body. */
+.group-intro { border-color: var(--glass-border); }
+.gi-head { display: flex; align-items: flex-start; gap: 14px; }
+.gi-ico {
+  font-size: 1.7rem; line-height: 1; flex-shrink: 0;
+  width: 46px; height: 46px; display: grid; place-items: center;
+  border-radius: 12px; background: var(--glass); border: 1px solid var(--glass-border-soft);
+}
+.gi-headings { display: flex; flex-direction: column; gap: 4px; }
+.gi-blurb { margin: 0; color: var(--ink); font-size: 0.96rem; line-height: 1.45; }
+.gi-meta { margin: 0; color: var(--ink-faint); font-size: 0.78rem; letter-spacing: 0.2px; }
+
+.gi-details { margin-top: 4px; }
+.gi-details > summary {
+  cursor: pointer; list-style: none; user-select: none;
+  margin-top: 14px; padding: 9px 0 0;
+  border-top: 1px solid var(--glass-border-soft);
+  font-size: 0.78rem; font-weight: 600; letter-spacing: 0.3px;
+  color: var(--accent); display: flex; align-items: center; gap: 8px;
+}
+.gi-details > summary::-webkit-details-marker { display: none; }
+.gi-details > summary::before {
+  content: '▸'; font-size: 0.7rem; transition: transform 0.18s; color: var(--ink-faint);
+}
+.gi-details[open] > summary::before { transform: rotate(90deg); }
+.gi-details > summary:hover { filter: brightness(1.15); }
+.gi-details .detail-section h3 { color: var(--ink-faint); }
+
+/* ====================== per-section guidance & inputs ================= */
+
+/* One-line explainer shown under a section's <h2> so each card says what it
+   does and what to enter. Additive — used across every group dashboard. */
+.section-desc {
+  margin: -6px 0 14px; max-width: 70ch;
+  font-size: 0.85rem; line-height: 1.5; color: var(--ink-soft);
+}
+/* Wrap a row of labelled inputs so they line up and wrap cleanly. */
+.field-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px 14px; }
+/* Small helper under an individual input. */
+.field-hint { font-size: 0.72rem; color: var(--ink-faint); font-weight: 400; }
+
 /* ============================= responsive ============================= */
 
 @media (max-width: 880px) {

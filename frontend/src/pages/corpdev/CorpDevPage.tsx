@@ -98,6 +98,11 @@ export function CorpDevPage({ eventSource }: CorpDevPageProps) {
 
       <section aria-label="Deal evaluation">
         <h2>Deal evaluation</h2>
+        <p className="section-desc">
+          Evaluates the M&amp;A pipeline — valuation, synergy and accretion modelling across the
+          candidate targets; each step turns green as a worker finishes. A deal that clears the
+          screens raises a recommendation for the board gate in the approvals section below.
+        </p>
         <button type="button" onClick={() => void runDeal()}>
           Run deal
         </button>
@@ -106,6 +111,11 @@ export function CorpDevPage({ eventSource }: CorpDevPageProps) {
 
       <section aria-label="IR console">
         <h2>IR console</h2>
+        <p className="section-desc">
+          Builds the investor-relations earnings pack for the reporting period across the business
+          segments, running the standing/IR lanes. Any external earnings disclosure it produces is held
+          for the Reg FD gate in the approvals section below before it can be published.
+        </p>
         <button type="button" onClick={() => void runEarnings()}>
           Run earnings pack
         </button>
@@ -113,6 +123,11 @@ export function CorpDevPage({ eventSource }: CorpDevPageProps) {
 
       <section aria-label="Disclosure approvals">
         <h2>Disclosure approvals</h2>
+        <p className="section-desc">
+          Human-in-the-loop gates for anything that leaves the company: deal recommendations (board
+          gate) and earnings disclosures (Reg FD gate) land here. Click one to review, then approve to
+          release it or reject to hold it — nothing is disclosed or recommended without sign-off.
+        </p>
         {approvals.length === 0 ? (
           <p>No disclosure approvals</p>
         ) : (

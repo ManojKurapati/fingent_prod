@@ -94,6 +94,12 @@ export function PrivateMarketsPage({ eventSource }: PrivateMarketsPageProps) {
 
       <section aria-label="Deal underwriting">
         <h2>Deal underwriting</h2>
+        <p className="section-desc">
+          Run a private-markets deal through the diligence/underwriting pipeline. Underwrite it and
+          the grid greens as each workstream finishes — this produces the IC memo and proposed
+          capital commitment; nothing commits capital from here until the Investment Committee votes
+          to approve it below.
+        </p>
         <button type="button" onClick={() => void runDeal()}>
           Underwrite deal
         </button>
@@ -102,6 +108,11 @@ export function PrivateMarketsPage({ eventSource }: PrivateMarketsPageProps) {
 
       <section aria-label="Portfolio monitor">
         <h2>Portfolio monitor</h2>
+        <p className="section-desc">
+          Sweep the existing portfolio for covenant breaches and KPI issues. Run the monitor and any
+          stewardship alerts are listed here — this is read-only surveillance that flags positions
+          needing attention; it triggers no trades or commitments on its own.
+        </p>
         <button type="button" onClick={() => void runMonitor()}>
           Run monitor
         </button>
@@ -112,6 +123,12 @@ export function PrivateMarketsPage({ eventSource }: PrivateMarketsPageProps) {
 
       <section aria-label="IC memo review">
         <h2>Investment Committee — capital commitments</h2>
+        <p className="section-desc">
+          This is the human-in-the-loop Investment Committee gate. Each item is an underwritten deal
+          whose IC memo proposes a capital commitment and is waiting on a committee vote. Click one to
+          review the memo, then approve to commit capital or reject to hold the deal — default-deny,
+          so no capital is committed without an approval here.
+        </p>
         {approvals.length === 0 ? (
           <p>No capital commitments pending</p>
         ) : (

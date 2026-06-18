@@ -80,14 +80,34 @@ export function ProductPage({ eventSource }: ProductPageProps) {
 
       <section aria-label="Product initiative">
         <h2>Initiative pipeline</h2>
-        <label>
-          Initiative name
-          <input value={name} onChange={(e) => setName(e.target.value)} />
-        </label>
-        <label>
-          Filing token
-          <input value={token} onChange={(e) => setToken(e.target.value)} />
-        </label>
+        <p className="section-desc">
+          Drives a product initiative through discovery → pricing → regulatory filing → launch. Name
+          the product and paste the regulatory filing token if you have one, then run it: stages
+          green as subagents finish. Launch is default-deny and stays blocked until the filing gate
+          clears — without a valid filing token no launch approval is ever raised.
+        </p>
+        <div className="field-row">
+          <label>
+            Initiative name
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="FX-Hedge"
+            />
+            <span className="field-hint">Working name of the product or initiative to run.</span>
+          </label>
+          <label>
+            Filing token
+            <input
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
+              placeholder="FT-1"
+            />
+            <span className="field-hint">
+              Regulatory filing reference; leave blank to keep launch blocked at the filing gate.
+            </span>
+          </label>
+        </div>
         <button type="button" onClick={() => void runInitiative()}>
           Run initiative
         </button>
@@ -96,6 +116,11 @@ export function ProductPage({ eventSource }: ProductPageProps) {
 
       <section aria-label="Launch approvals">
         <h2>Launch approvals</h2>
+        <p className="section-desc">
+          This is the human-in-the-loop launch gate: a filed product waits here until a product
+          owner decides. Click an item to review the launch rationale, then approve to take the
+          product live or reject to hold it — nothing launches without sign-off.
+        </p>
         {approvals.length === 0 ? (
           <p>No launches awaiting approval</p>
         ) : (

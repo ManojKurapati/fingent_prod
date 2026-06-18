@@ -89,6 +89,11 @@ export function FinOpsPage({ eventSource }: FinOpsPageProps) {
 
       <section aria-label="Data pipeline health">
         <h2>Data pipeline</h2>
+        <p className="section-desc">
+          Runs the finance data pipeline that loads and reconciles the source ledgers (GL, AP, AR) for
+          the period; each stage turns green as a worker finishes. This is read-only ingestion — it
+          surfaces pipeline health and does not change any ERP records.
+        </p>
         <button type="button" onClick={() => void runPipeline()}>
           Run pipeline
         </button>
@@ -97,14 +102,31 @@ export function FinOpsPage({ eventSource }: FinOpsPageProps) {
 
       <section aria-label="ERP access changes">
         <h2>ERP access changes</h2>
-        <label>
-          Change
-          <input value={change} onChange={(e) => setChange(e.target.value)} />
-        </label>
-        <label>
-          Role
-          <input value={role} onChange={(e) => setRole(e.target.value)} />
-        </label>
+        <p className="section-desc">
+          Request a change to someone&apos;s ERP access. Enter the change and the role it targets, then
+          submit: any request that creates a segregation-of-duties conflict is held in the queue below
+          for a SoD reviewer to approve before it is applied — nothing is granted automatically.
+        </p>
+        <div className="field-row">
+          <label>
+            Change
+            <input
+              value={change}
+              onChange={(e) => setChange(e.target.value)}
+              placeholder="grant-admin"
+            />
+            <span className="field-hint">The access change to make, e.g. grant-admin.</span>
+          </label>
+          <label>
+            Role
+            <input
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              placeholder="superuser"
+            />
+            <span className="field-hint">The ERP role being modified, e.g. superuser.</span>
+          </label>
+        </div>
         <button type="button" onClick={() => void requestAccessChange()}>
           Request access change
         </button>

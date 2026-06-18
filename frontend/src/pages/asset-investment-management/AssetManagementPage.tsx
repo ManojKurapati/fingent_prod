@@ -86,6 +86,14 @@ export function AssetManagementPage({ eventSource }: AssetManagementPageProps) {
 
       <section aria-label="Rebalance">
         <h2>Proposed rebalance</h2>
+        <p className="section-desc">
+          Run a portfolio rebalance through the buy-side pipeline — macro → allocation spine ‖
+          research fan-out → construction → mandate/risk gate → gated execution — or kick off a
+          standalone research fan-out on its own. The timeline greens as each subagent finishes, and
+          the proposed trade list surfaces below as a PM sign-off. Order placement is consequential:
+          nothing is placed until that approval is granted, and a list blocked by the mandate/risk
+          gate raises nothing to approve.
+        </p>
         <button type="button" onClick={() => void runRebalance()}>
           Run rebalance
         </button>
@@ -98,6 +106,12 @@ export function AssetManagementPage({ eventSource }: AssetManagementPageProps) {
 
       <section aria-label="Trade approvals">
         <h2>Trade-list approvals</h2>
+        <p className="section-desc">
+          These are the human-in-the-loop gates for placing rebalance orders. Each item is a trade
+          list that cleared the mandate/risk gate and is waiting on a portfolio-manager sign-off.
+          Click one to review the rationale, then approve to place the orders or reject to hold them
+          — nothing is placed without an approval here.
+        </p>
         {approvals.length === 0 ? (
           <p>No trade approvals pending</p>
         ) : (

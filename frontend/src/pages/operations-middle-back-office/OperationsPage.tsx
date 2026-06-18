@@ -26,6 +26,7 @@ export function OperationsPage({ eventSource }: OperationsPageProps) {
   const [approvals, setApprovals] = useState<Approval[]>([])
   const [selected, setSelected] = useState<Approval | null>(null)
   const [tradeId, setTradeId] = useState('T1')
+  const [amount, setAmount] = useState('1000')
   const unsubscribe = useRef<(() => void) | null>(null)
 
   const refresh = useCallback(async () => {
@@ -44,14 +45,14 @@ export function OperationsPage({ eventSource }: OperationsPageProps) {
 
   const runProcess = useCallback(async () => {
     setEvents([])
-    const { job_id } = await startProcess({ trade_id: tradeId, amount: 1_000 })
+    const { job_id } = await startProcess({ trade_id: tradeId, amount: Number(amount) || 0 })
     unsubscribe.current?.()
     unsubscribe.current = subscribeJob(
       job_id,
       { onEvent: (event) => setEvents((prev) => [...prev, event]) },
       eventSource,
     )
-  }, [eventSource, tradeId])
+  }, [eventSource, tradeId, amount])
 
   const handleApprove = useCallback(
     async (approver: string) => {
@@ -79,10 +80,29 @@ export function OperationsPage({ eventSource }: OperationsPageProps) {
 
       <section aria-label="Trade lifecycle">
         <h2>Trade lifecycle</h2>
-        <label>
-          Trade id
-          <input value={tradeId} onChange={(e) => setTradeId(e.target.value)} />
-        </label>
+        <p className="section-desc">
+          Push a trade through the post-execution pipeline — confirm → settle → reconcile. Enter the
+          trade reference and notional, then run it: each stage turns green as a subagent finishes,
+          and the settlement step pauses for your approval below.
+        </p>
+        <div className="field-row">
+          <label>
+            Trade id
+            <input value={tradeId} onChange={(e) => setTradeId(e.target.value)} placeholder="T1" />
+            <span className="field-hint">Reference of the executed trade to process.</span>
+          </label>
+          <label>
+            Notional amount
+            <input
+              type="number"
+              min="0"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="1000"
+            />
+            <span className="field-hint">Trade value to settle, in base currency.</span>
+          </label>
+        </div>
         <button type="button" onClick={() => void runProcess()}>
           Process trade
         </button>
@@ -91,6 +111,11 @@ export function OperationsPage({ eventSource }: OperationsPageProps) {
 
       <section aria-label="Settlement approvals">
         <h2>Settlement instructions</h2>
+        <p className="section-desc">
+          Settlements are default-deny: a confirmed trade waits here until a controller approves the
+          instruction. Click an item to review the rationale, then approve to release cash or reject
+          to hold it. Nothing settles without a human.
+        </p>
         {approvals.length === 0 ? (
           <p>No settlement instructions awaiting approval</p>
         ) : (

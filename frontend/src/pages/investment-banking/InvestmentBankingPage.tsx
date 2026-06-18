@@ -88,6 +88,13 @@ export function InvestmentBankingPage({ eventSource }: InvestmentBankingPageProp
 
       <section aria-label="Deal mandate">
         <h2>Deal mandate</h2>
+        <p className="section-desc">
+          Kick off a banking mandate and run it through the deal pipeline — origination → diligence →
+          {' '}materials ‖ compliance gate → gated execution. Choose the deal type, then run it: the
+          timeline greens as each subagent finishes, and the client-facing launch surfaces below as a
+          wall-crossing / conflicts sign-off. Nothing goes live until that approval is granted, and a
+          deal blocked by the compliance gate raises nothing to approve.
+        </p>
         <label>
           Deal type
           <select value={dealType} onChange={(e) => setDealType(e.target.value as DealType)}>
@@ -97,6 +104,9 @@ export function InvestmentBankingPage({ eventSource }: InvestmentBankingPageProp
               </option>
             ))}
           </select>
+          <span className="field-hint">
+            Product line: ma, ecm, dcm, levfin, or restructuring.
+          </span>
         </label>
         <button type="button" onClick={() => void runMandate()}>
           Run mandate
@@ -106,6 +116,12 @@ export function InvestmentBankingPage({ eventSource }: InvestmentBankingPageProp
 
       <section aria-label="Wall-crossing approvals">
         <h2>Wall-crossing / launch approvals</h2>
+        <p className="section-desc">
+          These are the human-in-the-loop gates for taking a deal client-facing. Each item is a
+          mandate that cleared the compliance gate and is waiting on a wall-crossing / conflicts
+          sign-off. Click one to review the rationale, then approve to launch or reject to hold it —
+          no deal is launched without an approval here.
+        </p>
         {approvals.length === 0 ? (
           <p>No launch approvals pending</p>
         ) : (

@@ -79,6 +79,11 @@ export function AuditPage({ eventSource }: AuditPageProps) {
 
       <section aria-label="Control testing">
         <h2>Control testing</h2>
+        <p className="section-desc">
+          Runs the audit engagement, fanning out automated test workers across each control in scope;
+          rows turn green as tests finish. Any failed controls become findings that feed the report
+          below, which can only be issued after CAE approval.
+        </p>
         <button type="button" onClick={() => void runEngagement()}>
           Run engagement
         </button>
@@ -87,6 +92,11 @@ export function AuditPage({ eventSource }: AuditPageProps) {
 
       <section aria-label="Findings &amp; report issuance">
         <h2>Findings &amp; report issuance</h2>
+        <p className="section-desc">
+          The CAE gate: once an engagement&apos;s findings are compiled, the audit report waits here for
+          issuance. Click it to review the findings, then approve to publish the report or reject to
+          hold it for revision — no report is issued without the CAE&apos;s sign-off.
+        </p>
         {approvals.length === 0 ? (
           <p>No report awaiting issuance</p>
         ) : (

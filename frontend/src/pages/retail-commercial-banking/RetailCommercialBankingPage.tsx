@@ -84,6 +84,12 @@ export function RetailCommercialBankingPage({ eventSource }: RetailCommercialBan
 
       <section aria-label="Lending pipeline">
         <h2>Lending pipeline</h2>
+        <p className="section-desc">
+          Runs a loan application through the credit pipeline — origination → analysis →
+          underwriting → funding. Click start to dispatch the subagents; each stage greens as it
+          finishes, and the disbursement pauses for the underwriter&apos;s credit-policy approval
+          below before any cash funds.
+        </p>
         <button type="button" onClick={() => void runApplication()}>
           Start application
         </button>
@@ -92,6 +98,11 @@ export function RetailCommercialBankingPage({ eventSource }: RetailCommercialBan
 
       <section aria-label="Underwriter decisions">
         <h2>Underwriter decisions</h2>
+        <p className="section-desc">
+          This is the human-in-the-loop credit gate: disbursements are default-deny and held here
+          until an underwriter decides. Click an item to review the credit rationale, then approve
+          to release funding or reject to hold it — no loan funds without sign-off.
+        </p>
         {approvals.length === 0 ? (
           <p>No disbursements pending</p>
         ) : (
